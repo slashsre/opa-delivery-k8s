@@ -1,0 +1,40 @@
+# -------------------------------------------------------------------
+# OPA Configuration for Envoy Ext-Authz POC
+# -------------------------------------------------------------------
+# Modo actual: políticas + data desde ConfigMap generado por Kustomize
+# (montado en /policies/authz). Ver deploy/opa/kustomization.yaml.
+decision_logs:
+  console: true
+
+# -------------------------------------------------------------------
+# Modo futuro: bundle remoto (Artifactory / ACR)
+# -------------------------------------------------------------------
+# `make policy-bundle` genera dist/opa-bundle.tar.gz con la misma
+# estructura (policies/ sin tests). Para que OPA lo descargue y lo
+# recargue sin reiniciar, publícalo y descomenta lo siguiente; luego
+# quita el argumento "/policies" y el volumen opa-policies del Deployment.
+#
+# Artifactory (HTTP genérico) — funciona con OPA 0.17:
+# services:
+#   artifactory:
+#     url: https://artifactory.example.com/artifactory/opa-bundles
+#     credentials:
+#       bearer:
+#         token: "<token>"   # o scheme Basic
+# bundles:
+#   authz:
+#     service: artifactory
+#     resource: envoy-authz/opa-bundle.tar.gz
+#     polling:
+#       min_delay_seconds: 30
+#       max_delay_seconds: 60
+#
+# ACR (OCI) — requiere OPA >= 0.40 (subir la imagen de OPA y Envoy v3):
+# services:
+#   acr:
+#     url: https://<registry>.azurecr.io
+#     type: oci
+# bundles:
+#   authz:
+#     service: acr
+#     resource: <registry>.azurecr.io/opa/envoy-authz:<tag>

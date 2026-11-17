@@ -1,0 +1,23 @@
+# -------------------------------------------------------------------
+# OPA gestionado por Flux: aplica el mismo artefacto que el modo
+# pipeline (deploy/opa/kustomization.yaml). Un merge que cambie
+# policies genera un ConfigMap nuevo (hash) y Flux hace el
+# rollout de OPA; prune elimina los ConfigMaps anteriores.
+#
+# El GitRepository "flux-system" lo crea la FluxInstance (spec.sync).
+# -------------------------------------------------------------------
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: opa
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 3m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./deploy/opa
+  prune: true
+  wait: true
