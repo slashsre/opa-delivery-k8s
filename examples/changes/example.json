@@ -1,0 +1,21 @@
+{
+  "operations": [
+    {
+      "op": "add-caller",
+      "caller": "admin",
+      "description": "Rol administrador (make token ROLE=admin)"
+    },
+    {
+      "op": "add-endpoint",
+      "caller": "admin",
+      "path": "/api/server/v1",
+      "methods": ["GET", "POST", "DELETE"]
+    },
+    {
+      "op": "add-endpoint",
+      "caller": "guest",
+      "path": "/api/server/v2/*",
+      "methods": ["GET"]
+    }
+  ]
+}

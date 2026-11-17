@@ -1,0 +1,28 @@
+# -------------------------------------------------------------------
+# Artefacto de despliegue de OPA (único para pipeline externo y GitOps)
+#
+#   Pipeline:  kubectl apply -k deploy/opa            (make deploy-opa)
+#   GitOps:    Flux Kustomization path ./deploy/opa   (deploy/flux)
+#   Render:    kubectl kustomize deploy/opa           (make policy-render)
+# -------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: opa
+
+resources:
+  - namespace.yaml
+  - opa-deployment.yaml
+  # ConfigMap opa-policies-<hash> (policy.rego + data.json)
+  - ../../policies
+
+configMapGenerator:
+  - name: opa-config
+    files:
+      - opa-config.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: opa-delivery
+      app.kubernetes.io/managed-by: opa-delivery
+    includeSelectors: false

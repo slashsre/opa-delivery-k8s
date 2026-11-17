@@ -1,0 +1,13 @@
+# -------------------------------------------------------------------
+# Políticas OPA empaquetadas como ConfigMap (sin los *_test.rego).
+# El hash en el nombre (opa-policies-<hash>) fuerza un rollout de OPA
+# cada vez que cambia la política o la data. Lo consume deploy/opa.
+# -------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - name: opa-policies
+    files:
+      - envoy/authz/policy.rego
+      - authz/data.json

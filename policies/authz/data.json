@@ -1,0 +1,29 @@
+{
+  "caller_claim": "role",
+  "callers": {
+    "guest": {
+      "description": "Rol por defecto del POC (make token)",
+      "endpoints": [
+        {
+          "methods": [
+            "GET",
+            "POST"
+          ],
+          "path": "/api/client/v1"
+        },
+        {
+          "methods": [
+            "GET",
+            "POST"
+          ],
+          "path": "/api/server/v1"
+        }
+      ]
+    }
+  },
+  "public_paths": [
+    "/",
+    "/health",
+    "/healthz"
+  ]
+}

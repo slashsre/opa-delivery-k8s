@@ -1,0 +1,117 @@
+# -------------------------------------------------------------------
+# OPA (Envoy ext_authz) — gestionado con Kustomize (deploy/opa/kustomization.yaml)
+# -------------------------------------------------------------------
+# Las políticas y la data NO se cargan por la API ni con kube-mgmt:
+# Kustomize genera el ConfigMap "opa-policies" (con hash en el nombre)
+# desde policies/. Cada cambio de política/data produce un nombre
+# nuevo, lo que dispara un rollout de este Deployment.
+#
+# El mismo artefacto se aplica igual en los dos modos de delivery:
+#   - Pipeline externo: kubectl apply -k deploy/opa   (make deploy-opa)
+#   - GitOps:           Flux Kustomization con path ./deploy/opa
+# -------------------------------------------------------------------
+kind: Service
+apiVersion: v1
+metadata:
+  name: opa
+spec:
+  selector:
+    app: opa
+  ports:
+  - name: grpc
+    protocol: TCP
+    port: 9191
+    targetPort: 9191
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: opa-http
+spec:
+  selector:
+    app: opa
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8181
+    targetPort: 8181
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: opa
+  name: opa
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+      name: opa
+    spec:
+      containers:
+        # WARNING: OPA is NOT running with an authorization policy configured on
+        # its REST API (:8181). See https://www.openpolicyagent.org/docs/security.html
+        - name: opa
+          image: openpolicyagent/opa:0.17.3-istio
+          args:
+            - "run"
+            - "--server"
+            - --set=plugins.envoy_ext_authz_grpc.addr=:9191
+            - --set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow
+            - --set=decision_logs.console=true
+            - --log-format=json-pretty
+            # Ignora los directorios internos del volumen de ConfigMap (..data, ..2025_xx)
+            - --ignore=.*
+            - "--addr=http://0.0.0.0:8181"
+            - --config-file=/config/opa-config.yaml
+            # Raíz de carga: /policies/authz/data.json -> data.authz
+            - /policies
+          ports:
+            - name: grpc
+              containerPort: 9191
+            - name: http
+              containerPort: 8181
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /config
+              name: opa-config
+              readOnly: true
+            - mountPath: /policies/authz
+              name: opa-policies
+              readOnly: true
+      volumes:
+        - name: opa-config
+          configMap:
+            name: opa-config
+        # Generado por Kustomize desde policies (policy.rego + data.json)
+        - name: opa-policies
+          configMap:
+            name: opa-policies
